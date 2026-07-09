@@ -122,6 +122,13 @@ available.\footnote{\url{https://github.com/elliottower/geometric-sensor-robustn
     variation---and zero exceed $|\rho| > 0.8$.
 \end{enumerate}
 
+To our knowledge, this is the first systematic, pre-registered
+comparison of geometric analysis methods under controlled noise
+conditions.  Prior work has evaluated individual geometric families on
+specific tasks; the contribution here is the cross-family sensitivity
+map and the identification of noise-geometry matching as the
+operational challenge.
+
 % ================================================================
 \section{Simulation oracle}
 \label{sec:oracle}
@@ -238,7 +245,8 @@ difference is $-0.74$ ($[-0.94, -0.52]$).  Both CIs exclude zero in
 the wrong direction: bracket norm strictly outperforms Grassmannian
 geodesic.
 
-The level-by-level data reveals the mechanism.
+The level-by-level data reveals the mechanism
+(Figure~\ref{fig:geodesic-bracket}).
 On $\sigma_\text{device}$, mean geodesic scores are flat between 1.94
 and 1.95 across all decoherence levels, with no monotonic trend
 ($\rho = -0.15$, CI includes zero).
@@ -352,6 +360,19 @@ on $\sigma_\text{device}$.  This selectivity reflects the shared
 geometric property (direction invariance to mean shifts), not a
 quantum-specific detection mechanism.
 
+\paragraph{Transport-stable bracket: broad coverage, device-blind.}
+The transport-stable bracket achieves 4/5 axes at $|\rho| > 0.8$,
+matching raw bracket norms on composite and non-composite axes alike
+($\rho = +1.00$ on $\alpha_{T2}$, $+0.94$ on $\sigma_\text{surface}$,
+$+1.00$ on $\sigma_\text{temp}$, $+0.98$ on $n_\text{centers}$).  On
+$\sigma_\text{device}$, however, transport stabilization collapses the
+signal: $\rho = -0.10$ (CI: $[-0.30, +0.08]$) compared to $+0.70$ for
+the raw bracket.  The stabilization procedure removes location
+information by design, yielding the same mean-shift blindness seen in
+direction-based methods.  This tradeoff---broad robustness at the cost
+of device-variation sensitivity---is quantifiable only with the
+companion-axis design.
+
 \paragraph{Curvature phase transition.}
 Ollivier-Ricci and Forman-Ricci curvature exhibit a sharp phase
 transition on $\alpha_{T2}$: Ollivier-Ricci collapses from $0.998$ to
@@ -403,12 +424,12 @@ the other four axes (additive offsets, per-sample noise, dimensionality)
 preserve the eigenvalue gap.  This makes spectral gap stability a
 narrow but precise detector of coherence loss.
 
-\paragraph{Localized bracket: a sigma\_device specialist.}
+\paragraph{Localized bracket: a $\sigma_\text{device}$ specialist.}
 Localized bracket achieves $\rho = -0.74$ on $\sigma_\text{device}$
-and $|\rho| < 0.05$ on all other axes.  It measures within-neighborhood
-geometric structure, which collapses as device offsets increase the
-intra-device spread.  This is the only method with a single-axis
-specialization profile.
+(CI: $[-0.84, -0.61]$) and $|\rho| < 0.05$ on all other axes.
+It measures within-neighborhood geometric structure, which collapses
+as device offsets increase the intra-device spread.  This is the only
+method with a single-axis specialization profile.
 
 \paragraph{Classification baselines saturate at low decoherence.}
 All classification baselines (LASSO, logistic, RF, DRO) return AUC =
@@ -421,6 +442,32 @@ $\alpha_{T2} \approx 0.44$, with LASSO dropping from 1.0 to 0.75 at
 $\alpha_{T2} = 1.0$.  Geometric methods detect structural changes at
 decoherence levels where classification has not yet degraded---they
 measure different properties than classification accuracy.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fig1_sensitivity_heatmap.pdf}
+\caption{Method--axis sensitivity map.  Each cell shows the median
+  Spearman $\rho$(score, decoherence level) across 20 seeds (10
+  levels per axis, 200 samples per class, 3 devices).  Bold text marks
+  $|\rho| > 0.8$.  The $\sigma_\text{dev}$ column is the discriminating
+  axis: most methods cluster near zero, while bracket norms and
+  Cohen's d remain responsive.  Color scale: RdBu, diverging at zero.}
+\label{fig:heatmap}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fig2_geodesic_vs_bracket.pdf}
+\caption{The H3a refutation mechanism on $\sigma_\text{device}$.
+  \textbf{Left:}~Bracket norm (raw) increases monotonically with
+  device variation ($\rho = +0.70$, CI: $[+0.47, +0.79]$).
+  \textbf{Right:}~Grassmannian geodesic distance is flat ($\rho =
+  -0.15$, CI: $[-0.43, +0.08]$), spanning only 1.94--1.95 across all
+  decoherence levels.  Error bars show $\pm 1$ standard deviation
+  across 20 seeds.  The geodesic is invariant to the additive
+  per-device offset that $\sigma_\text{device}$ introduces.}
+\label{fig:geodesic-bracket}
+\end{figure}
 
 % ================================================================
 \section{Discussion}
@@ -513,13 +560,34 @@ respond to which decoherence mechanisms in simulated NV-diamond
 thermometry.  The headline result is a refutation: Grassmannian geodesic
 distance, a principled subspace metric, is blind to the noise source
 most relevant to clinical multi-sensor deployments (device calibration
-variation) because of a geometric invariance property.  Six methods (bracket norms, persistent H0, CKA, Procrustes,
-fidelity proxy, transport-stable bracket) achieve the best
-generalization at 4 of 5 axes, but all fall short on device variation.  The
-method--axis sensitivity map produced here can guide method selection for
-specific deployment scenarios: use bracket norms for broad coverage,
-direction-based methods for coherence degradation detection, and simple
-effect-size baselines when device variation dominates.
+variation) because of a geometric invariance property
+(Figure~\ref{fig:geodesic-bracket}).  Six methods (bracket norms,
+persistent H0, CKA, Procrustes, fidelity proxy, transport-stable
+bracket) achieve the best generalization at 4 of 5 axes, but all fall
+short on device variation (Figure~\ref{fig:heatmap}).
+
+\paragraph{Practitioner guidance.}
+The method--axis sensitivity map (Table~\ref{tab:sensitivity}) can guide
+method selection for specific deployment scenarios.  When the dominant
+noise source is unknown, bracket norms provide the broadest coverage
+(4/5 axes at $|\rho| > 0.8$).  When coherence degradation is the
+primary concern, direction-based methods (Berry phase, Grassmannian
+geodesic) offer precise detection on $\alpha_{T2}$ and
+$\sigma_\text{surface}$.  When device-to-device calibration variation
+dominates---as it does in many clinical multi-sensor
+deployments---simple effect-size baselines (Cohen's d) or localized
+bracket norms are the appropriate tools, because most geometric methods
+are blind to additive offsets.
+
+\paragraph{Transferability.}
+The companion-axis methodology transfers to any domain where a primary
+decoherence axis is composite.  The principle---test the same hypothesis
+on a clean, non-composite axis alongside the composite one---exposed the
+central finding here and can similarly disentangle confounds in other
+sensing modalities.  A planned follow-up study will extend this design to
+cross-modality sensor arrays (NV-diamond, entangled-photon, spin-labeled
+protein) with 12 decoherence axes, where sheaf cohomology and transport
+methods are expected to differentiate from bracket norms.
 
 \paragraph{Reproducibility.}
 All code, pre-registration, deviation log, and raw results (30,000
