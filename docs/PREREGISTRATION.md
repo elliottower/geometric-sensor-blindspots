@@ -127,13 +127,18 @@ or it doesn't — bootstrap CIs and Bonferroni correction are inapplicable.
 If H4d fails, the sheaf implementation is wrong and all sheaf-based results
 are suspect. It runs first as a correctness gate.
 
-**4 Confirmatory Tests** (3 hypotheses, H3a tested on 2 axes; Bonferroni-corrected α = 0.05/4 = 0.0125):
+**3 Confirmatory Tests** (2 hypotheses, H3a tested on 2 axes; Bonferroni-corrected α = 0.05/3 = 0.0167):
 
 | ID | Hypothesis | Test |
 |----|-----------|------|
 | **H3a** | Grassmannian geodesic detects subspace drift at lower decoherence than feature-level methods | CI on median(ρ_geodesic − ρ_bracket) excludes 0 on alpha_T2 **and** sigma_device |
-| **H8a** | LASSO beats all geometric methods at low decoherence | At alpha_T2 ∈ [0, 0.22], median LASSO AUC > best geometric |
 | **H6d** | Von Neumann entropy tracks decoherence monotonically | |ρ| > 0.8 on alpha_T2 |
+
+**1 Voided Hypothesis** (untestable under adopted statistical framework):
+
+| ID | Hypothesis | Status |
+|----|-----------|--------|
+| **H8a** | LASSO beats all geometric methods at low decoherence | UNTESTABLE — requires direct cross-scale score comparison incompatible with the Spearman-rho normalization. See DEVIATION_LOG.md. |
 
 **H3a companion test**: Because alpha_T2 is a composite axis (moves T2,
 linewidth, and contrast together), a subspace method lighting up early
@@ -143,9 +148,10 @@ sigma_device (a clean, non-composite axis that only adds a temperature
 offset). The sigma_device result is the cleaner test of the subspace-drift
 mechanism; the alpha_T2 result is the composite-axis companion.
 
-These three test the headline claims: (1) geometry adds value over baselines
-at high decoherence (H3a), (2) baselines dominate at low decoherence (H8a),
-(3) information-theoretic methods track noise monotonically (H6d).
+These test the headline claims: (1) geometry adds value over baselines
+at high decoherence (H3a), (2) information-theoretic methods track noise
+monotonically (H6d). H8a (baselines dominate at low decoherence) was voided
+post-execution as untestable under the adopted Spearman-rho framework.
 
 **All other hypotheses (H1a-c, H2a-c, H3b-c, H4a-c, H5a-c, H6a-b, H7a-c,
 H8b-c, H9a-c, H10) are EXPLORATORY.** Their results are reported descriptively
@@ -155,9 +161,11 @@ explicitly flagged as requiring independent replication.
 
 ### Multiple Testing
 
-The 4 confirmatory tests use **Bonferroni correction** (α_per_test = 0.0125).
-No correction is applied to exploratory hypotheses because they carry no
-significance claim.
+The 3 confirmatory tests use **Bonferroni correction** (α_per_test = 0.0167).
+H8a was voided post-execution (untestable under the Spearman-rho framework;
+see DEVIATION_LOG.md), reducing the confirmatory pool from 4 to 3 and adjusting
+α from 0.05/4 = 0.0125 to 0.05/3 = 0.0167. No correction is applied to
+exploratory hypotheses because they carry no significance claim.
 
 ## Methods
 

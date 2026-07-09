@@ -1,0 +1,129 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\setlist{nosep}
+
+\title{Concept Note: Geometric Transportability for\\Quantum Biosensor Readouts}
+\author{Elliot Tower \and Nathan [TBD] \and Ian [TBD, MIT Lincoln Lab]}
+\date{July 2026 --- Draft for discussion}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\section*{Problem}
+
+Quantum biosensors---NV-center nanodiamonds, entangled-photon imagers,
+spin-labeled protein detectors---achieve extraordinary sensitivity.
+The barrier to clinical adoption is not sensitivity but
+\textbf{transportability}: sensor readouts drift across devices,
+temperatures, tissue types, and decoherence regimes.  A biomarker
+discovered on one instrument in one lab fails to replicate on another.
+Every Stage~1 winner of the NIH Quantum Sensing Challenge builds
+better sensors; none addresses whether the statistical features
+extracted from those sensors are robust enough to transport across
+conditions.
+
+\section*{Idea}
+
+We propose a \textbf{deterministic geometric post-processing layer}
+that sits downstream of any quantum sensor and extracts
+decoherence-robust biomarkers.  The core insight: treat the
+high-dimensional sensor output as a point cloud on a manifold, then
+select features whose geometric properties are invariant under the
+distribution shifts caused by decoherence and calibration drift.
+
+Three existing methods from our prior work compose into this layer:
+
+\begin{enumerate}
+  \item \textbf{Transport-stability scoring.}  For each candidate
+    biomarker feature, measure whether its value transports across
+    held-out decoherence regimes (temperature, T$_2$ relaxation time,
+    surface noise).  Features that survive transport are
+    decoherence-robust by construction.
+
+  \item \textbf{Ollivier--Ricci curvature summarization.}  Construct a
+    nearest-neighbor graph over sensor readouts; compute discrete
+    Ricci curvature at each node.  Curvature captures local
+    concentration geometry and is stable under moderate perturbation,
+    making it a natural decoherence-robust summary statistic.
+
+  \item \textbf{Grassmannian subspace alignment.}  When comparing
+    readouts across devices or patients, represent each dataset as a
+    subspace on the Grassmannian and measure alignment via principal
+    angles.  This gives a calibration-free cross-device similarity
+    metric.
+\end{enumerate}
+
+The layer is fully deterministic: no learned parameters, no training,
+no stochastic optimization.  It takes raw sensor output and returns
+transportable features with a quantitative robustness certificate.
+
+\section*{Why this is novel}
+
+\begin{itemize}
+  \item \textbf{Unoccupied niche.}  Among the 11 Sensing Stage~1
+    winners (and 10 Computing winners), all propose new sensor
+    hardware or quantum algorithms.  None addresses the statistical
+    validity of the features extracted from quantum sensor output.
+  \item \textbf{Sensor-agnostic.}  The geometric layer is agnostic to
+    the upstream sensor technology---it applies equally to NV-diamond
+    magnetometry, entangled-photon imaging, or spin-labeled protein
+    detection.
+  \item \textbf{Deterministic = reproducible.}  Pre-registered
+    analysis with no learned parameters eliminates a major source of
+    replication failure in biomarker discovery.
+\end{itemize}
+
+\section*{Validation plan}
+
+We validate on simulated quantum-sensor data with controlled
+decoherence, following the same pre-registration discipline we use in
+all our work (parameters frozen under a commit SHA before any
+experiment runs).
+
+\begin{enumerate}
+  \item \textbf{Synthetic NV-diamond readouts.}  Simulate
+    fluorescence time-traces under varying T$_2$ times, surface noise
+    levels, and temperatures.  Extract candidate biomarker features.
+    Measure which features transport across regimes.
+  \item \textbf{Published datasets.}  Apply to any publicly available
+    quantum-sensor datasets (NV-diamond intracellular thermometry,
+    entangled-photon microscopy) if they exist with sufficient
+    metadata.
+  \item \textbf{Cross-device calibration.}  Demonstrate Grassmannian
+    subspace alignment as a zero-parameter calibration transfer
+    between simulated devices with different noise profiles.
+\end{enumerate}
+
+\section*{Team}
+
+\begin{description}[leftmargin=!,labelwidth=2.5cm]
+  \item[Elliot Tower] Geometric methods, transport-stability
+    framework, Grassmannian/curvature code, pre-registration protocol,
+    write-up.  Independent researcher; prior work on mechanistic
+    validity, Ollivier--Ricci curvature in psychiatric comorbidity
+    networks, drug-target transportability.
+  \item[Nathan] Physics rigor---decoherence models, quantum noise
+    characterization, T$_2$/T$_1$ simulation fidelity.
+  \item[Ian (MIT-LL)] Hardware realism---real sensor noise profiles,
+    NV-diamond or photonic platform grounding, institutional
+    credibility in quantum sensing.
+\end{description}
+
+\section*{Fit to NIH Qu-BIT}
+
+This targets Sensing Area~2 (``Quantum-enabled Approaches for Early
+Detection and Diagnostics'') and Area~3 (``Quantum-enabled Sensing
+and Imaging Devices for Diagnostics and Monitoring'').  The geometric
+layer is complementary to every Stage~1 winner's hardware---it makes
+their sensor output more clinically trustworthy, which is exactly the
+translational bottleneck NCATS exists to solve.
+
+\vfill
+\noindent\textit{Contact: Elliot Tower,
+  \href{mailto:elliot@elliottower.ai}{elliot@elliottower.ai}}
+
+\end{document}

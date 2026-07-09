@@ -188,19 +188,26 @@ CONFIRMATORY_HYPOTHESES = {
         "axis": "sigma_device",
         "direction": "greater",
     },
-    "H8a": {
-        "description": "LASSO beats all geometric methods at low decoherence (alpha_T2 < 0.2)",
-        "test": "At alpha_T2 in [0.0, 0.22], median lasso_auc > median score of best geometric method",
-        "method_a": "lasso_auc",
-        "axis": "alpha_T2",
-        "low_regime": True,
-    },
     "H6d": {
         "description": "Von Neumann entropy tracks decoherence monotonically",
         "test": "|Spearman rho| of vn_entropy_stability with alpha_T2 > 0.8",
         "method_a": "vn_entropy_stability",
         "axis": "alpha_T2",
         "threshold": 0.8,
+    },
+}
+
+UNTESTABLE_HYPOTHESES = {
+    "H8a": {
+        "description": "LASSO beats all geometric methods at low decoherence (alpha_T2 < 0.2)",
+        "status": "untestable_under_spearman_framework",
+        "note": (
+            "Pre-registered comparison requires direct cross-scale score comparison "
+            "(LASSO AUC vs geometric scores), which contradicts the Spearman-rho "
+            "normalization adopted for all cross-method comparisons. At alpha_T2 < 0.22, "
+            "all classification baselines achieve AUC = 1.0 (ceiling saturation), "
+            "consistent with the spirit of H8a."
+        ),
     },
 }
 
@@ -286,9 +293,11 @@ def run_analysis(input_path, output_path):
         "analysis_timestamp": datetime.now(timezone.utc).isoformat() if 'datetime' in dir() else None,
         "rho_table": rho_table,
         "confirmatory_hypotheses": confirmatory,
+        "untestable_hypotheses": UNTESTABLE_HYPOTHESES,
         "confirmatory_alpha": CONFIRMATORY_ALPHA,
         "n_confirmatory": len(CONFIRMATORY_HYPOTHESES),
         "n_correctness_gates": len(CORRECTNESS_GATE),
+        "n_untestable": len(UNTESTABLE_HYPOTHESES),
         "note_exploratory": (
             "All hypotheses H1-H10 not listed in confirmatory_hypotheses are "
             "EXPLORATORY. Their results are reported descriptively (median rho "

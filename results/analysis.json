@@ -1151,7 +1151,7 @@
         "ci_lo": -0.4848484848484848,
         "ci_hi": -0.32121212121212117
       },
-      "alpha": 0.0125,
+      "alpha": 0.016666666666666666,
       "rejected_null": false
     },
     "H3a_sigma_device": {
@@ -1165,18 +1165,8 @@
         "ci_lo": -0.9393939393939392,
         "ci_hi": -0.5151515151515151
       },
-      "alpha": 0.0125,
+      "alpha": 0.016666666666666666,
       "rejected_null": false
-    },
-    "H8a": {
-      "description": "LASSO beats all geometric methods at low decoherence (alpha_T2 < 0.2)",
-      "median_abs_rho": 0.937436866561092,
-      "ci": [
-        -0.9692233691951196,
-        -0.937436866561092
-      ],
-      "alpha": 0.0125,
-      "passed": true
     },
     "H6d": {
       "description": "Von Neumann entropy tracks decoherence monotonically",
@@ -1185,12 +1175,20 @@
         0.8666666666666666,
         0.9333333333333333
       ],
-      "alpha": 0.0125,
+      "alpha": 0.016666666666666666,
       "passed": true
     }
   },
-  "confirmatory_alpha": 0.0125,
-  "n_confirmatory": 4,
+  "untestable_hypotheses": {
+    "H8a": {
+      "description": "LASSO beats all geometric methods at low decoherence (alpha_T2 < 0.2)",
+      "status": "untestable_under_spearman_framework",
+      "note": "Pre-registered comparison requires direct cross-scale score comparison (LASSO AUC vs geometric scores), which contradicts the Spearman-rho normalization adopted for all cross-method comparisons. At alpha_T2 < 0.22, all classification baselines achieve AUC = 1.0 (ceiling saturation), consistent with the spirit of H8a."
+    }
+  },
+  "confirmatory_alpha": 0.016666666666666666,
+  "n_confirmatory": 3,
   "n_correctness_gates": 1,
+  "n_untestable": 1,
   "note_exploratory": "All hypotheses H1-H10 not listed in confirmatory_hypotheses are EXPLORATORY. Their results are reported descriptively (median rho with CI) but not tested against a controlled alpha threshold. Exploratory findings require independent replication."
 }

@@ -1,0 +1,558 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[numbers]{natbib}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+\setlist{nosep}
+
+\graphicspath{{../results/}}
+
+\newcommand{\Gr}{\mathrm{Gr}}
+
+\title{Which geometric methods survive decoherence?\\
+  A pre-registered comparison of 23 methods on\\
+  simulated NV-diamond thermometry}
+\author{Elliot Tower\textsuperscript{1}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent\textsuperscript{1}Independent Researcher\\
+\noindent Correspondence: \href{mailto:elliot@elliottower.com}{elliot@elliottower.com}
+
+\bigskip
+
+% ================================================================
+\begin{abstract}
+Geometric methods for cross-sensor analysis---bracket norms, Grassmannian
+geodesics, sheaf cohomology, discrete curvatures, persistent homology,
+quantum information metrics---each detect specific structural properties
+of multi-sensor data.  Which of these properties survive realistic
+sensor noise, and which are artifacts of clean-data assumptions?  We
+answer this for NV-diamond intracellular thermometry through a
+pre-registered experiment comparing 23 geometric methods and 7 scalar
+baselines across five decoherence axes (T2 degradation, surface noise,
+device variation, temperature drift, ensemble size), with 20-seed
+replication and bootstrap confidence intervals.  The central finding is
+a method--axis sensitivity map: no single geometric method generalizes
+across all decoherence types, and the axis that discriminates between
+methods (device calibration variation) has the simplest physics
+(additive offset).  We pre-registered that Grassmannian geodesic
+distance would outperform bracket norms at detecting subspace drift;
+it does not (median $\Delta\rho = -0.38$ on the composite axis,
+$-0.74$ on the clean axis, both CIs excluding zero in the wrong
+direction).  The refutation has a geometric explanation: geodesic
+distance is invariant to mean shifts by construction, making it blind
+to the dominant real-world noise source.  Of three confirmatory
+hypotheses, one is confirmed (von Neumann entropy tracks decoherence
+monotonically, $|\rho| = 0.90$) and two are refuted with mechanism.
+The method--axis map, the device-variation discriminating axis, and the
+subspace-method invariance result are the paper's contributions.
+\end{abstract}
+
+\noindent\textbf{Keywords:}
+geometric methods, quantum sensors, NV-diamond, decoherence,
+pre-registration, Grassmannian, bracket norm, persistent homology,
+cross-sensor robustness
+
+% ================================================================
+\section{Introduction}
+\label{sec:intro}
+
+When multiple sensors measure the same quantity, they should agree.
+Detecting disagreement requires a metric, and geometric methods offer a
+rich toolkit: Grassmannian geodesic distance between PCA
+subspaces~\citep{edelman1998geometry}, bracket norms measuring
+inter-group variability in Lie-algebraic
+terms~\citep{tower2026bracket}, sheaf cohomology
+detecting device-level inconsistency~\citep{hansen2019toward},
+discrete curvatures characterizing graph
+structure~\citep{ollivier2009ricci,forman2003bochner},
+persistent homology tracking topological features across
+scales~\citep{carlsson2009topology}, and quantum information
+metrics (QFI, Berry phase, von Neumann entropy) measuring sensitivity
+and mixedness of quantum states~\citep{braunstein1994statistical}.
+
+Each method encodes a different geometric property.  The question this
+paper addresses is empirical: which of these properties are robust to
+the noise sources that dominate real sensor deployments, and which
+degrade or become uninformative as decoherence increases?
+
+We answer this for NV-diamond intracellular thermometry, a quantum
+sensing modality in which nitrogen-vacancy centers in diamond detect
+temperature via the zero-field splitting shift ($dD/dT = -74$~kHz/K).
+The simulation sweeps five physically motivated decoherence axes: T2
+coherence time degradation (a composite axis affecting T2, linewidth,
+and fluorescence contrast simultaneously), surface noise from diamond
+defects, device-to-device calibration variation, temperature drift, and
+ensemble size.  Each axis isolates a distinct noise mechanism, enabling
+us to map which geometric methods respond to which noise type.
+
+The experiment is pre-registered: all 23 methods, 7 baselines,
+hypotheses, and statistical analysis plan were frozen under commit SHA
+\texttt{8401d54} before any data was generated.  Two rounds of
+adversarial review identified and corrected five structural problems
+(insufficient replication, missing multiple-testing correction, composite
+axis confounding, broken TDA implementations, unfair cross-method
+comparison) before the freeze.  The full pre-registration, deviation
+log, and raw results (30,000 method evaluations) are publicly
+available.\footnote{\url{https://github.com/elliottower/geometric-sensor-robustness}}
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item A \textbf{method--axis sensitivity map} showing which geometric
+    families respond to which decoherence types, revealing that no method
+    generalizes across all five axes.
+  \item A \textbf{pre-registered refutation} of the hypothesis that
+    Grassmannian geodesic distance outperforms bracket norms, with a
+    geometric explanation (mean-shift invariance).
+  \item The identification of \textbf{device calibration variation} as
+    the discriminating axis: 25 of 30 methods track the composite
+    coherence axis at $|\rho| > 0.5$, but only 6 do so on device
+    variation---and zero exceed $|\rho| > 0.8$.
+\end{enumerate}
+
+% ================================================================
+\section{Simulation oracle}
+\label{sec:oracle}
+
+The NV-diamond simulation generates multi-device datasets with controlled
+decoherence.  Each dataset contains $n = 200$ samples per class (healthy
+tissue at 310.0~K, tumor tissue at 311.5~K) measured across $k = 3$
+devices, yielding features derived from the ODMR (optically detected
+magnetic resonance) spectrum: resonance frequency, linewidth, contrast,
+T2 coherence time, and signal-to-noise ratio.
+
+Five decoherence axes parameterize noise (Table~\ref{tab:axes}).  The
+experimental design sweeps one axis at a time (10 levels each) while
+holding the others at baseline (zero decoherence), with 20 independent
+seeds per condition.
+
+\begin{table}[t]
+\centering
+\caption{Decoherence axes.  \textbf{Composite axes} affect multiple
+  features simultaneously; results on these axes must be interpreted
+  with the coupling in mind.  sigma\_device is the cleanest axis
+  (additive offset only) and serves as the primary discriminator
+  between methods.}
+\label{tab:axes}
+\begin{tabular}{@{}llccl@{}}
+\toprule
+Axis & Parameter & Range & Composite? & Physics \\
+\midrule
+T2 degradation & $\alpha_{T2}$ & $[0, 1]$ & \textbf{Yes} & T2 + linewidth + contrast \\
+Surface noise & $\sigma_\text{surface}$ & $[0, 0.5]$ & Yes & T2 noise + linewidth variance \\
+Device variation & $\sigma_\text{device}$ & $[0, 0.1]$ & No & Additive temperature offset \\
+Temperature drift & $\sigma_\text{temp}$ & $[0, 2.0]$~K & No & Per-sample noise \\
+Ensemble size & $n_\text{centers}$ & $\{5 \ldots 50\}$ & No & Dimensionality change \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ================================================================
+\section{Methods}
+\label{sec:methods}
+
+All 23 geometric methods and 7 baselines take identical input
+$(X, y, \text{device\_ids})$ and return a scalar score.  Methods are
+grouped by geometric family (Table~\ref{tab:methods}).
+
+\begin{table}[t]
+\centering
+\caption{Methods by family.  ``New'' indicates methods implemented for
+  this study; others are ported from existing repositories.  Method~24
+  (Chern number) was cut pre-registration due to a gauge-invariance
+  error; method~15 is restricted to H0 (connected components) after the
+  H1 heuristic was found to be incorrect.}
+\label{tab:methods}
+\small
+\begin{tabular}{@{}llp{7cm}@{}}
+\toprule
+Family & Methods & Description \\
+\midrule
+Bracket (5) & 1--5 & Raw, corrected, transport-stable, phenotype-projected, localized bracket norms \\
+Curvature (2) & 6--7 & Ollivier-Ricci (metric), Forman-Ricci (combinatorial) \\
+Grassmannian (2) & 8--9 & Geodesic distance, loop holonomy \\
+Sheaf (3) & 10--11, 23 & Cochran's Q via sheaf H$^1$, per-edge Q, persistent sheaf cohomology \\
+Topology (2) & 15--16 & Persistent H0 (union-find), Wasserstein persistence distance \\
+Quantum (4) & 17--18, 21--22 & QFI flatness, Berry phase proxy, von Neumann entropy stability, fidelity proxy \\
+Alignment (2) & 13--14 & Linear CKA, Procrustes distance \\
+Transport (2) & 12, 20 & TransportKit fusion, Wasserstein-1 distance \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{Baselines (7):} t-test, Cohen's d, LASSO (3-fold CV AUC), RF, logistic, IRM penalty, DRO worst-device AUC} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Statistical framework}
+
+All cross-method comparisons use Spearman rank correlation between a
+method's score and the decoherence level, computed per seed and
+summarized as the median $\rho$ across 20 seeds with bootstrap 95\% CI
+(10,000 resamples).  This normalizes across methods' different score
+scales by reducing each to a monotonic association strength on $[-1, +1]$.
+
+Directional comparisons compute the per-seed paired difference
+$\rho_A - \rho_B$ and report the bootstrap CI on the median difference.
+If the CI excludes zero, the comparison is significant.
+
+\paragraph{Confirmatory vs.\ exploratory.}
+One correctness gate (H4d: sheaf H$^1$ = Cochran's Q, analytic
+identity, no $\alpha$ needed) runs first.  The pre-registration froze
+four confirmatory tests at $\alpha = 0.05/4 = 0.0125$: H3a on
+$\alpha_{T2}$, H3a on $\sigma_\text{device}$ (two tests for the same
+hypothesis on different axes), H6d, and H8a.  Post-execution, H8a was
+voided as untestable under the Spearman framework (direct cross-scale
+score comparison is incompatible with the normalization; see
+Section~\ref{sec:deviation-h8a}), reducing the denominator from 4 to 3
+and yielding a final $\alpha = 0.05/3 = 0.0167$.  This change is logged
+in the deviation record.  All other hypotheses are exploratory.
+
+% ================================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Correctness gate}
+
+H4d passes: the sheaf H$^1$ implementation reproduces Cochran's Q to
+machine precision on synthetic data with known heterogeneity (5 devices,
+3 with effect, 2 without; $Q = 168.1$, $p < 10^{-6}$) and returns
+$Q \approx 0$ on homogeneous data ($Q = 0.28$, $p = 0.99$).
+
+\subsection{Confirmatory hypotheses}
+
+\paragraph{H3a: Grassmannian geodesic vs.\ bracket norm (REFUTED).}
+On $\alpha_{T2}$ (composite axis), the median paired difference
+$\rho_\text{geodesic} - \rho_\text{bracket}$ is $-0.38$ (95\% CI:
+$[-0.48, -0.32]$).  On $\sigma_\text{device}$ (clean axis), the
+difference is $-0.74$ ($[-0.94, -0.52]$).  Both CIs exclude zero in
+the wrong direction: bracket norm strictly outperforms Grassmannian
+geodesic.
+
+The level-by-level data reveals the mechanism.
+On $\sigma_\text{device}$, mean geodesic scores are flat between 1.94
+and 1.95 across all decoherence levels, with no monotonic trend
+($\rho = -0.15$, CI includes zero).
+Device calibration variation adds a constant temperature offset to all
+samples from a given device.  This shifts both class means equally,
+preserving the principal angle between class subspaces.  The
+Grassmannian geodesic is geometrically correct in reporting ``no
+subspace change''---but this invariance makes it blind to the dominant
+noise source in multi-device deployments.
+
+Bracket norms, by contrast, respond to both subspace rotation and
+scale changes in inter-group variability, achieving $\rho = +0.70$
+on $\sigma_\text{device}$.
+
+\paragraph{H6d: Von Neumann entropy monotonicity (CONFIRMED).}
+Von Neumann entropy stability achieves $|\rho| = 0.90$ on
+$\alpha_{T2}$ (CI: $[0.87, 0.93]$), exceeding the pre-registered
+0.8 threshold at $\alpha = 0.0167$.
+
+\paragraph{H8a: LASSO vs.\ geometric at low decoherence (VOIDED).}
+\label{sec:deviation-h8a}
+This hypothesis required comparing LASSO AUC directly against geometric
+method scores at low decoherence ($\alpha_{T2} < 0.22$).  At these
+levels, all classification baselines achieve AUC = 1.0 on all 20 seeds
+(the 1.5~K tumor-healthy difference produces a $\sim$111~kHz frequency
+shift that remains trivially classifiable).  Geometric methods produce
+scores on incomparable scales (bracket norms $\sim 10^8$, curvatures
+$\sim -20$, angles $\sim 2.0$).  The Spearman-$\rho$ normalization
+adopted for all other comparisons is inapplicable to a within-regime
+score comparison.  The underlying observation---classification is
+trivially solved at low decoherence while geometric methods detect
+structural changes below the classification threshold---is reported
+descriptively but carries no confirmatory weight.
+
+\subsection{The method--axis sensitivity map}
+
+Table~\ref{tab:sensitivity} presents the core result: the median
+Spearman $\rho$ for each method family's best representative on each
+decoherence axis.  The ``Axes $> 0.8$'' column counts how many axes
+the method tracks with $|\rho| > 0.8$.
+
+\begin{table}[t]
+\centering
+\caption{Method--axis sensitivity map.  Each cell shows the median
+  Spearman $\rho$(score, decoherence level) across 20 seeds for the
+  best method in each family.  Bold indicates $|\rho| > 0.8$.
+  $\sigma_\text{dev}$ is the discriminating axis: most methods are near
+  zero.  $\dagger$Classification baselines return AUC = 1.0 (constant)
+  on $\sigma_\text{surf}$ and $\sigma_\text{dev}$; Spearman $\rho$ is
+  undefined.}
+\label{tab:sensitivity}
+\small
+\begin{tabular}{@{}llcccccr@{}}
+\toprule
+Family & Best method & $\alpha_{T2}$ & $\sigma_\text{surf}$ & $\sigma_\text{dev}$ & $\sigma_\text{temp}$ & $n_\text{cent}$ & $>$0.8 \\
+\midrule
+Bracket & bracket\_norm\_raw & \textbf{+1.00} & \textbf{+0.90} & +0.70 & \textbf{+1.00} & \textbf{+0.96} & 4/5 \\
+Bracket & transport\_stable & \textbf{+1.00} & \textbf{+0.94} & $-$0.10 & \textbf{+1.00} & \textbf{+0.98} & 4/5 \\
+Topology & persistent\_h0 & \textbf{+1.00} & \textbf{+1.00} & +0.55 & \textbf{+0.98} & \textbf{+1.00} & 4/5 \\
+Alignment & CKA & \textbf{$-$1.00} & \textbf{$-$0.98} & +0.12 & \textbf{$-$1.00} & \textbf{+1.00} & 4/5 \\
+Quantum & fidelity\_proxy & \textbf{$-$0.96} & \textbf{$-$0.99} & $-$0.03 & \textbf{+1.00} & \textbf{$-$1.00} & 4/5 \\
+Alignment & Procrustes & \textbf{+1.00} & \textbf{+1.00} & $-$0.02 & \textbf{+0.99} & \textbf{$-$1.00} & 4/5 \\
+Sheaf & persistent\_sheaf & \textbf{$-$1.00} & \textbf{$-$1.00} & $-$0.16 & \textbf{$-$0.99} & $-$0.03 & 3/5 \\
+\midrule
+Grassmannian & geodesic & +0.62 & $-$0.52 & $-$0.15 & $-$0.16 & \textbf{+0.87} & 1/5 \\
+Curvature & Ollivier-Ricci & $-$0.59 & +0.75 & +0.07 & $-$0.46 & \textbf{+0.93} & 1/5 \\
+Sheaf & sheaf\_h1 & $-$0.29 & $-$0.21 & $-$0.07 & +0.20 & $-$0.67 & 0/5 \\
+\midrule
+Classification$^\dagger$ & LASSO & \textbf{$-$0.94} & --- & --- & \textbf{$-$0.99} & --- & 2/5 \\
+Effect size & Cohen's d & \textbf{$-$1.00} & $-$0.25 & $-$0.72 & \textbf{$-$1.00} & $-$0.11 & 2/5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sigma\_device: the discriminating axis}
+
+Of 30 methods tested, only 6 achieve $|\rho| > 0.5$ on
+$\sigma_\text{device}$: localized bracket ($-0.74$), Cohen's d
+($-0.72$), bracket norm raw ($+0.70$), bracket norm corrected
+($+0.70$), persistent H0 ($+0.55$), and IRM penalty ($-0.52$).
+None exceed $|\rho| > 0.8$.
+By contrast, 25 of 30 methods achieve $|\rho| > 0.5$ on
+$\alpha_{T2}$, and 20 exceed $|\rho| > 0.8$.
+
+The physics explains the gap.  Device calibration variation adds a
+constant temperature offset per device---a mean shift in the feature
+space that preserves within-device covariance structure.  Methods
+operating on subspace angles (Grassmannian), graph curvature
+(Ollivier-Ricci, Forman-Ricci), spectral properties, or
+direction-based proxies are invariant to such shifts by construction.
+Only methods sensitive to between-group location differences
+(bracket norms, effect sizes) or within-group dispersion changes
+(persistent H0) detect the perturbation.
+
+This result has practical implications for clinical multi-sensor
+deployments, where device-to-device calibration differences are often
+the primary noise source.  Geometric methods that are invariant to
+additive offsets provide no advantage over a t-test in this regime.
+
+\subsection{Exploratory findings}
+
+\paragraph{Direction-based methods share mean-shift invariance.}
+Berry phase, Grassmannian geodesic, and Grassmannian holonomy all
+measure angles or direction-dependent properties in feature space.
+All three are blind to $\sigma_\text{device}$ ($|\rho| < 0.15$) for
+the same reason: additive offsets do not change directions.  The
+Berry-phase proxy in particular achieves $\rho = +1.00$ on
+$\alpha_{T2}$ and $+0.95$ on $\sigma_\text{surface}$---both axes
+that distort covariance structure---while remaining at $\rho = +0.006$
+on $\sigma_\text{device}$.  This selectivity reflects the shared
+geometric property (direction invariance to mean shifts), not a
+quantum-specific detection mechanism.
+
+\paragraph{Curvature phase transition.}
+Ollivier-Ricci and Forman-Ricci curvature exhibit a sharp phase
+transition on $\alpha_{T2}$: Ollivier-Ricci collapses from $0.998$ to
+$0.200$ between $\alpha_{T2} = 0.33$ and $0.44$, reaching $\approx 0$
+by $0.56$; Forman-Ricci jumps from $-18$ (negative curvature,
+indicating structured clusters) to $+0.5$ at the same boundary.  This
+transition marks the decoherence level at which the k-NN graph loses
+cluster structure, defining a ``graph collapse threshold'' beyond which
+discrete curvature methods are uninformative.
+
+\paragraph{Persistent H0: the silent generalist.}
+Persistent H0 (connected components via union-find) achieves 4/5 axes
+at $|\rho| > 0.8$ with monotonically increasing total persistence on
+$\alpha_{T2}$ (from $2.2 \times 10^7$ to $4.2 \times 10^8$).  The
+decision to restrict to H0 and cut the incorrect H1 heuristic is
+validated: the NV-diamond point cloud has no decoherence-varying loop
+structure, so H1 would have added noise.
+
+\paragraph{Sheaf cohomology: a split result.}
+Sheaf H$^1$ (Cochran's Q) and per-edge sheaf Q achieve $|\rho| < 0.3$
+on all axes---an honest null.  Persistent sheaf cohomology, by contrast, achieves
+$|\rho| > 0.8$ on 3 of 5 axes ($\alpha_{T2}$: $-1.00$;
+$\sigma_\text{surface}$: $-1.00$; $\sigma_\text{temp}$: $-0.99$),
+while remaining blind to $\sigma_\text{device}$ ($-0.16$) and
+$n_\text{centers}$ ($-0.03$).  Persistent sheaf cohomology combines
+sheaf consistency checks with a persistence filtration, capturing
+topological changes in the device-consistency structure across scales
+that the pointwise Cochran Q misses.
+
+A device-count expansion confirms that the sheaf H$^1$ null on
+$\sigma_\text{device}$ is structural, not a power limitation.
+At 5 devices (20 seeds), sheaf H$^1$ achieves $\rho = +0.04$
+(CI: $[-0.16, +0.21]$)---statistically indistinguishable from the
+3-device result ($\rho = -0.07$, CI: $[-0.22, +0.35]$).  By
+contrast, bracket norm raw strengthens from $+0.70$ at 3 devices
+to $+0.73$ at 5 devices (CI: $[+0.69, +0.76]$), indicating that
+power increases with device count for methods sensitive to mean
+shifts.  The Cochran Q statistic underlying sheaf H$^1$ measures
+heterogeneity in per-device effect sizes; when all devices share
+the same physics (single-modality NV-diamond), a common-mode
+calibration offset produces homogeneous effects by construction,
+yielding $Q \approx 0$ regardless of device count.
+
+\paragraph{Spectral gap: an $\alpha_{T2}$ specialist.}
+Spectral gap stability achieves $\rho = +0.96$ on $\alpha_{T2}$ and
+$|\rho| < 0.12$ on all other axes.  The composite coherence axis
+collapses the spectral gap of the sample covariance matrix, while
+the other four axes (additive offsets, per-sample noise, dimensionality)
+preserve the eigenvalue gap.  This makes spectral gap stability a
+narrow but precise detector of coherence loss.
+
+\paragraph{Localized bracket: a sigma\_device specialist.}
+Localized bracket achieves $\rho = -0.74$ on $\sigma_\text{device}$
+and $|\rho| < 0.05$ on all other axes.  It measures within-neighborhood
+geometric structure, which collapses as device offsets increase the
+intra-device spread.  This is the only method with a single-axis
+specialization profile.
+
+\paragraph{Classification baselines saturate at low decoherence.}
+All classification baselines (LASSO, logistic, RF, DRO) return AUC =
+1.0 on every level of $\sigma_\text{surface}$ and
+$\sigma_\text{device}$ across all 20 seeds.  The 1.5~K tumor-healthy
+temperature difference ($\sim$111~kHz frequency shift) remains
+trivially classifiable even at maximum surface noise or device
+variation.  On $\alpha_{T2}$, AUC begins degrading above
+$\alpha_{T2} \approx 0.44$, with LASSO dropping from 1.0 to 0.75 at
+$\alpha_{T2} = 1.0$.  Geometric methods detect structural changes at
+decoherence levels where classification has not yet degraded---they
+measure different properties than classification accuracy.
+
+% ================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{No universal geometric method}
+
+The central finding is negative: no geometric method achieves
+$|\rho| > 0.8$ on all five decoherence axes.  Six methods cover 4 of
+5 axes (bracket norm raw, transport-stable bracket, persistent H0,
+CKA, Procrustes, fidelity proxy), and persistent sheaf cohomology
+covers 3 of 5.  The missing axis for all of them is
+$\sigma_\text{device}$ (or, for the transport-stable bracket and sheaf
+methods, $n_\text{centers}$ as well).  Methods designed to capture subspace geometry
+(Grassmannian), graph topology (curvatures), or direction-dependent
+properties (Berry phase proxy) achieve strong performance on their
+responsive axes but are blind to additive noise.
+
+This pattern is not a failure of the methods.  Each method correctly
+computes the geometric property it was designed to measure.  The
+finding is that the geometric property relevant to decoherence depends
+on the noise mechanism: coherence degradation rotates and scales
+subspaces ($\alpha_{T2}$), surface defects perturb graph structure
+($\sigma_\text{surface}$), but device variation merely shifts
+locations ($\sigma_\text{device}$).  Matching the method to the noise
+geometry is the operational challenge.
+
+\subsection{The value of the companion axis}
+
+The $\sigma_\text{device}$ companion axis was added during
+pre-registration review to disentangle composite-axis effects from
+genuine subspace drift.  Without it, the paper would have reported that
+``most methods work well'' (25/30 achieve $|\rho| > 0.5$ on
+$\alpha_{T2}$) and missed the central finding.  The companion axis design---testing the same
+hypothesis on a clean, non-composite axis alongside the composite
+one---is a transferable experimental principle for any study where the
+primary axis affects multiple features simultaneously.
+
+\subsection{Pre-registration discipline}
+
+The H3a refutation demonstrates the value of pre-registration.  Post
+hoc, one might rationalize either outcome: ``Grassmannian methods should
+detect subspace drift because they directly measure subspace angles''
+(our pre-registered prediction) or ``Grassmannian methods should miss
+additive noise because they are location-invariant'' (the actual
+explanation).  Both are geometrically coherent.  Without a frozen
+prediction, the second explanation could be presented as if it were
+the original hypothesis.
+
+Similarly, the H8a voiding shows that pre-registration can expose
+incoherence in the statistical framework.  The hypothesis was written
+before the Spearman-$\rho$ normalization was adopted, and it survived
+the review rounds because it seemed intuitively correct.  Only when the
+results arrived did the scale-incompatibility become undeniable.
+
+\subsection{Limitations}
+
+The NV-diamond simulation is a controlled testbed, not a substitute for
+real sensor data.  Feature dimensions are low ($\leq 5$), sample sizes
+are moderate ($n = 200$ per class), and the noise model is parametric.
+Real NV-diamond measurements involve nonlinear transductions,
+non-Gaussian noise, and correlated decoherence channels.  The specific
+$\rho$ values reported here depend on these simulation choices.
+
+The sheaf H$^1$ null on $\sigma_\text{device}$ is structural, not a
+power limitation: a device-count expansion from 3 to 5 devices (20
+seeds each) shows no activation ($\rho$ shifts from $-0.07$ to
+$+0.04$, both CIs including zero), while bracket norms strengthen
+over the same range.  Single-modality device variation produces
+homogeneous per-device effects, which Cochran's Q cannot detect by
+construction.  Persistent sheaf cohomology, which wraps Q in a
+persistence filtration, achieves strong performance on 3 of 5
+axes---the split result reflects the difference between pointwise
+heterogeneity testing and multi-scale topological structure.  Testing
+sheaf H$^1$ on cross-modality data, where different sensor types
+produce qualitatively different effect sizes, remains an open
+question.
+
+The Berry-phase and QFI implementations are classical proxies applied to
+feature-space statistics, not direct quantum-state measurements.  Claims
+about ``quantum-channel selectivity'' would require access to the actual
+quantum state, not to processed measurement features.
+
+% ================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This study provides a pre-registered map of which geometric methods
+respond to which decoherence mechanisms in simulated NV-diamond
+thermometry.  The headline result is a refutation: Grassmannian geodesic
+distance, a principled subspace metric, is blind to the noise source
+most relevant to clinical multi-sensor deployments (device calibration
+variation) because of a geometric invariance property.  Six methods (bracket norms, persistent H0, CKA, Procrustes,
+fidelity proxy, transport-stable bracket) achieve the best
+generalization at 4 of 5 axes, but all fall short on device variation.  The
+method--axis sensitivity map produced here can guide method selection for
+specific deployment scenarios: use bracket norms for broad coverage,
+direction-based methods for coherence degradation detection, and simple
+effect-size baselines when device variation dominates.
+
+\paragraph{Reproducibility.}
+All code, pre-registration, deviation log, and raw results (30,000
+evaluations) are available at
+\url{https://github.com/elliottower/geometric-sensor-robustness}.
+The simulation is fully deterministic: given the frozen commit SHA
+(\texttt{8401d54}) and the 20-seed pool (seeds 1000--1019), all results
+can be regenerated.
+
+\subsection*{Data availability}
+
+Raw JSON results (all 30,000 evaluations) and analysis output
+(bootstrap CIs, confirmatory test outcomes) are committed alongside
+the source code.
+
+\subsection*{Software availability}
+
+Source code requires Python~3.11+, NumPy, SciPy, scikit-learn, and
+tqdm (no GPU or proprietary software).  MIT license.
+
+\subsection*{Author contributions}
+
+E.T.\ conceived the study, designed and implemented all experiments and
+methods, performed the statistical analysis, and wrote the manuscript.
+
+\subsection*{Competing interests}
+
+No competing interests were disclosed.
+
+\subsection*{Grant information}
+
+No grants were involved in supporting this work.
+
+\bibliographystyle{unsrtnat}
+\bibliography{refs}
+
+\end{document}
