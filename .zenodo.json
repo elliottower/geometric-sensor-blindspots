@@ -1,0 +1,24 @@
+{
+  "title": "Geometric Sensor Robustness",
+  "upload_type": "software",
+  "description": "Geometric methods for quantum sensing technology robustness assessment.",
+  "creators": [
+    {
+      "name": "Tower, Elliot",
+      "orcid": "0000-0001-7004-8884"
+    }
+  ],
+  "license": "MIT",
+  "keywords": [
+    "quantum sensing",
+    "geometric methods",
+    "robustness"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/elliottower/geometric-sensor-robustness",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}
