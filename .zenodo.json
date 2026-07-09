@@ -1,18 +1,27 @@
 {
-  "title": "Geometric Sensor Robustness",
-  "upload_type": "software",
-  "description": "Geometric methods for quantum sensing technology robustness assessment.",
+  "title": "Which geometric methods survive decoherence? A pre-registered comparison of 23 methods on simulated NV-diamond thermometry",
+  "upload_type": "dataset",
+  "description": "Pre-registered experiment comparing 23 geometric methods and 7 scalar baselines across five decoherence axes in simulated NV-diamond intracellular thermometry. Contains analysis code, pre-registration (frozen under commit SHA 8401d54), deviation log, and raw results (30,000 method evaluations, 20 seeds, bootstrap CIs). The central finding is a method-axis sensitivity map: no single geometric method generalizes across all decoherence types, and device calibration variation (the simplest noise mechanism) is the axis that discriminates between methods.",
   "creators": [
     {
       "name": "Tower, Elliot",
-      "orcid": "0000-0001-7004-8884"
+      "orcid": "0000-0001-7004-8884",
+      "affiliation": "Independent Researcher"
     }
   ],
-  "license": "CC-BY-4.0",
+  "license": "MIT",
   "keywords": [
-    "quantum sensing",
     "geometric methods",
-    "robustness"
+    "quantum sensors",
+    "NV-diamond",
+    "decoherence",
+    "pre-registration",
+    "Grassmannian",
+    "bracket norm",
+    "persistent homology",
+    "sheaf cohomology",
+    "cross-sensor robustness",
+    "method comparison"
   ],
   "related_identifiers": [
     {
@@ -20,5 +29,6 @@
       "relation": "isSupplementTo",
       "scheme": "url"
     }
-  ]
+  ],
+  "notes": "Pre-registration frozen under commit SHA 8401d54. All results are fully deterministic and reproducible from the frozen commit and seed pool (seeds 1000-1019)."
 }
