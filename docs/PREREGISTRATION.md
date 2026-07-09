@@ -1,6 +1,6 @@
 # Pre-Registration: Geometric Methods for Quantum Sensor Biomarker Robustness
 
-**Status**: CODE FROZEN, AWAITING PERPLEXITY REVIEW BEFORE EXECUTION
+**Status**: CODE FROZEN, REVIEWED AND APPROVED BY PERPLEXITY
 
 ## Frozen Code
 
@@ -9,7 +9,7 @@ and analysis module are frozen at the commit SHA below. No modifications to
 any `src/` file are permitted after this SHA until experiments complete and
 results are reported.
 
-**Freeze SHA**: `[TO BE SET AFTER COMMIT — run git rev-parse HEAD]`
+**Freeze SHA**: `8401d543ecb6de720bd2a0fdc41c3ec4dc660f13`
 
 **Frozen files**:
 - `src/nv_diamond.py` — NV-diamond intracellular thermometry simulation oracle
