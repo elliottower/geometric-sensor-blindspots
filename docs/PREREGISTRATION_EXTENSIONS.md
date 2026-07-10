@@ -19,6 +19,7 @@ pipeline are unchanged. New code is added only to the simulator
 | A2 | 2026-07-09 | Alpha bookkeeping: extensions declared as separate confirmatory family | Parent used 0.05/3; extensions are independent experiments, not additions to the original family. |
 | A3 | 2026-07-09 | H_dT criterion tightened from rho-vs-AUC to paired effect-size comparison | Original criterion was trivially satisfiable (rho is scale-free, so bracket always tracks). |
 | A4 | 2026-07-09 | Gain applied only to amplitude features, not resonance frequency | Resonance frequency is set by crystal field D(T), not collection optics. |
+| A5 | 2026-07-09 | H_gain downgraded from confirmatory to exploratory | Pilot data informed prediction direction; exploratory status removes ambiguity. |
 
 ---
 
@@ -61,7 +62,7 @@ and not included in any analysis.
 - All other decoherence parameters at baseline (zero).
 - 30 methods x 10 levels x 100 seeds = 30,000 evaluations.
 
-### Hypothesis H_gain (CONFIRMATORY, alpha = 0.025)
+### Hypothesis H_gain (EXPLORATORY)
 
 Subspace-angle methods (Grassmannian geodesic, CKA, Procrustes, Berry
 phase) achieve |rho| < 0.15 on `gain_device`, demonstrating that
@@ -74,11 +75,13 @@ that preserve feature-vector direction.
 scale transformations break subspace geometry in ways additive offsets
 do not, and the invariance-blindness principle is specific to translation.
 
-**Why alpha = 0.025**: H_gain and H_dT form a **separate confirmatory
-family** from the parent pre-registration's 3 tests (which used
-alpha = 0.05/3 = 0.0167). The extension experiments are independent:
-different axes, different seeds, different research questions. Two
-confirmatory tests at Bonferroni 0.05/2 = 0.025.
+**Why exploratory**: A 2-seed pilot was run before this hypothesis was
+finalized (see pilot disclosure above). Although the pilot data are
+discarded and the full experiment differs in three ways, the prediction
+direction was informed by pilot observation. Exploratory status removes
+any ambiguity about confirmatory integrity. The mechanism argument
+(scalar gain preserves subspace angle) carries the scientific claim
+independently of the statistical label.
 
 ## Extension 3: Smaller temperature difference (`delta_T` sweep)
 
@@ -168,8 +171,8 @@ partial correlations and interaction residuals.
 | Family | Tests | Alpha per test | Source |
 |--------|-------|---------------|--------|
 | Parent (original 5-axis) | H3a (alpha_T2), H3a (sigma_device), H6d | 0.05/3 = 0.0167 | PREREGISTRATION.md |
-| Extensions | H_gain, H_dT | 0.05/2 = 0.025 | This document |
+| Extensions | H_dT | 0.05/1 = 0.05 (conservatively kept at 0.025) | This document |
 
-The two families are independent: different axes, different seeds,
-different research questions. No cross-family correction is applied.
-H_int is exploratory and excluded from both families.
+H_gain and H_int are exploratory and excluded from confirmatory
+families. H_dT is the sole confirmatory extension test; alpha is
+conservatively kept at 0.025 rather than relaxed to 0.05.
