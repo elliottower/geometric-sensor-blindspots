@@ -90,10 +90,24 @@ multiplicative scaling). For axes without a natural group action
 IIA is Level 1 only — necessary but explicitly insufficient per the
 pi-SAE paper's own findings.
 
+## Scale-sensitive comparators (from H_gain, Extension 1)
+
+The H_gain experiment (SHA e31a495, 30,000 results) revealed two existing
+methods with strong scale sensitivity:
+
+  - VN entropy (method 21): rho = -0.806 on sigma_gain
+  - Sheaf H1 (method 10): rho = +0.818 on sigma_gain
+
+These are registered here as EXPLORATORY comparators on sigma_device.
+Confirmatory question: does VN entropy already serve as T_scale (making
+the bespoke L1 scale term redundant)? If VN entropy achieves |rho| > 0.3
+on sigma_device while T_scale does not, or vice versa, that resolves
+whether scale sensitivity transfers across axis types.
+
 ## Design (shared)
 
-- Axis under test: sigma_device, 10 levels in [0, 0.1], 100 seeds.
-- Specificity axis: n_centers in {5,8,10,15,20,25,30,35,40,50}, 100 seeds.
+- Axis under test: sigma_device, 10 levels in [0, 0.1], 200 seeds.
+- Specificity axis: n_centers in {5,8,10,15,20,25,30,35,40,50}, 200 seeds.
 - Validation hierarchy: all 4 levels applied to every designed metric
   AND to the 30 existing methods (the existing methods should fail
   Level 4 on sigma_device — this is the invariance-blindness law
@@ -115,3 +129,5 @@ pi-SAE paper's own findings.
 | # | Date | Change | Why |
 |---|------|--------|-----|
 | — | 2026-07-10 | Initial freeze | — |
+| A1 | 2026-07-10 | Bumped seed count from 100 to 200 for both sigma_device and n_centers sweeps | Procrustes at std=0.29 on 100 seeds was underpowered against the 0.15 threshold on H_gain; headline axis must not be underpowered |
+| A2 | 2026-07-10 | Added VN entropy (method 21) and sheaf H1 (method 10) as exploratory scale-sensitive comparators on sigma_device | Emerged from H_gain results (rho=-0.806 and +0.818 on sigma_gain); registered before sigma_device run to keep them non-post-hoc |
