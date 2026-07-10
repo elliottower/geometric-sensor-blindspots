@@ -11,12 +11,13 @@ Per NV center, 5 features: T2, ODMR linewidth, fluorescence contrast,
 resonance frequency, T1 relaxation. For N centers per sample, feature
 vector is in R^(5N).
 
-Five decoherence axes (each independently controllable):
+Six decoherence axes (each independently controllable):
   1. T2 degradation:       alpha_T2 in [0, 1]
   2. Surface noise:        sigma_surface in [0, 0.5]
   3. Device variation:     sigma_device in [0, 0.1]
   4. Temperature drift:    sigma_temp in [0, 2.0] K
   5. Ensemble size:        n_centers in {5, 10, 20, 50}
+  6. Device gain:          sigma_gain in [0, 0.15]
 """
 
 import numpy as np
@@ -36,6 +37,7 @@ BASELINE_DECOHERENCE = {
     "sigma_device": 0.0,
     "sigma_temp": 0.0,
     "n_centers": 20,
+    "sigma_gain": 0.0,
 }
 
 
@@ -46,6 +48,7 @@ class DecoherenceParams:
     sigma_device: float = 0.0
     sigma_temp: float = 0.0
     n_centers: int = 20
+    sigma_gain: float = 0.0
 
     def to_dict(self):
         return {
@@ -54,6 +57,7 @@ class DecoherenceParams:
             "sigma_device": self.sigma_device,
             "sigma_temp": self.sigma_temp,
             "n_centers": self.n_centers,
+            "sigma_gain": self.sigma_gain,
         }
 
 
@@ -63,6 +67,7 @@ DECOHERENCE_AXES = {
     "sigma_device": np.linspace(0.0, 0.1, 10),
     "sigma_temp": np.linspace(0.0, 2.0, 10),
     "n_centers": np.array([5, 8, 10, 15, 20, 25, 30, 35, 40, 50]),
+    "sigma_gain": np.linspace(0.0, 0.15, 10),
 }
 
 
@@ -139,12 +144,15 @@ def generate_dataset(
     device_ids = np.empty(n_total, dtype=int)
 
     device_offsets = rng.normal(0, params.sigma_device, size=n_devices)
+    device_gains = rng.normal(1.0, params.sigma_gain, size=n_devices)
 
     idx = 0
     for dev in range(n_devices):
         for label, temp in [(0, TEMP_HEALTHY), (1, TEMP_TUMOR)]:
             for _ in range(n_per_class):
                 X[idx] = generate_nv_sample(temp, params, device_offsets[dev], rng)
+                if params.sigma_gain > 0:
+                    X[idx] *= device_gains[dev]
                 y[idx] = label
                 device_ids[idx] = dev
                 idx += 1

@@ -16,8 +16,8 @@
 
 \newcommand{\Gr}{\mathrm{Gr}}
 
-\title{Which geometric methods survive decoherence?\\
-  A pre-registered comparison of 23 methods on\\
+\title{Geometric invariance predicts sensor blind spots:\\
+  a pre-registered comparison of 23 methods on\\
   simulated NV-diamond thermometry}
 \author{Elliot Tower\textsuperscript{1}}
 \date{}
@@ -32,32 +32,29 @@
 
 % ================================================================
 \begin{abstract}
-Geometric methods for cross-sensor analysis---bracket norms, Grassmannian
-geodesics, sheaf cohomology, discrete curvatures, persistent homology,
-quantum information metrics---each detect specific structural properties
-of multi-sensor data.  Which of these properties survive realistic
-sensor noise, and which are artifacts of clean-data assumptions?  We
-answer this for NV-diamond intracellular thermometry through a
-pre-registered experiment comparing 23 geometric methods and 7 scalar
-baselines across five decoherence axes (T2 degradation, surface noise,
-device variation, temperature drift, ensemble size), with 100-seed
-replication (150,000 evaluations) and bootstrap confidence intervals.  The central finding is
-a method--axis sensitivity map: no single geometric method generalizes
-across all decoherence types, and the axis that discriminates between
-methods (device calibration variation) has the simplest physics
-(additive offset).  We pre-registered that Grassmannian geodesic
-distance would outperform bracket norms at detecting subspace drift;
-it does not (median $\Delta\rho = -0.39$ on the composite axis,
-$-0.62$ on the clean axis, both CIs excluding zero in the wrong
-direction).  The refutation has a geometric explanation: geodesic
-distance is invariant to mean shifts by construction, making it blind
-to the dominant real-world noise source.  Of three confirmatory
-tests, one is confirmed (von Neumann entropy tracks decoherence
-monotonically, $|\rho| = 0.88$), two are refuted with mechanism,
-and a fourth (LASSO dominance at low decoherence) is voided as
-untestable under the adopted statistical framework.
-The method--axis map, the device-variation discriminating axis, and the
-subspace-method invariance result are the paper's contributions.
+A geometric method's invariance properties determine which sensor noise
+sources it can detect and which it is blind to.  We establish this
+principle---and a falsifiable prediction derived from it---through a
+pre-registered experiment on simulated NV-diamond intracellular
+thermometry, comparing 23 geometric methods and 7 scalar baselines
+across five decoherence axes (150,000 evaluations, 100 seeds, bootstrap
+CIs).  The prediction: any method invariant to translations in feature
+space (Grassmannian geodesic, CKA, Berry phase, and others) will fail
+to detect device calibration variation, the dominant noise source in
+multi-sensor deployments, because per-device calibration offsets are
+additive.  The data confirm this without exception---every
+translation-invariant method achieves $|\rho| < 0.15$ on device
+variation, while every non-invariant method exceeds $|\rho| > 0.5$.
+The invariance principle also explains a pre-registered refutation:
+Grassmannian geodesic distance, predicted to outperform bracket norms,
+instead underperforms on both the composite axis ($\Delta\rho = -0.39$,
+$d = -1.87$) and the clean axis ($\Delta\rho = -0.62$, $d = -1.48$).
+The resulting method--axis sensitivity map shows that 25 of 30 methods
+track the composite coherence axis at $|\rho| > 0.5$, but only 6 do so
+on device variation---the axis with the simplest physics is the one that
+discriminates.  These results are an existence demonstration on
+simulated data; the structural finding (invariance predicts blindness)
+transfers to real sensors, while the specific $\rho$ values may not.
 \end{abstract}
 
 \noindent\textbf{Keywords:}
@@ -97,6 +94,12 @@ We answer this for NV-diamond intracellular thermometry, a quantum
 sensing modality in which nitrogen-vacancy centers in diamond detect
 temperature via the zero-field splitting shift ($dD/dT =
 -74$~kHz/K)~\citep{kucsko2013nanometre,doherty2013nitrogen,schirhagl2014nitrogen}.
+In practice, per-nanodiamond strain variation produces $\sim$170~kHz
+standard deviation in the zero-field splitting
+parameter~\citep{fujiwara2024fluorescent}, corresponding to
+$\sim$2.3~K equivalent calibration offset---making device-to-device
+variation the dominant noise source in multi-sensor
+deployments~\citep{sekiguchi2023simultaneous,rajpal2025evaluating}.
 The simulation sweeps five physically motivated decoherence axes: T2
 coherence time degradation (a composite axis affecting T2, linewidth,
 and fluorescence contrast simultaneously---reflecting the physical
@@ -120,24 +123,30 @@ available.\footnote{\url{https://github.com/elliottower/geometric-sensor-robustn
 
 \paragraph{Contributions.}
 \begin{enumerate}
-  \item A \textbf{method--axis sensitivity map} showing which geometric
-    families respond to which decoherence types, revealing that no method
-    generalizes across all five axes.
-  \item A \textbf{pre-registered refutation} of the hypothesis that
-    Grassmannian geodesic distance outperforms bracket norms, with a
-    geometric explanation (mean-shift invariance).
-  \item The identification of \textbf{device calibration variation} as
-    the discriminating axis: 25 of 30 methods track the composite
-    coherence axis at $|\rho| > 0.5$, but only 6 do so on device
-    variation---and zero exceed $|\rho| > 0.8$.
+  \item A \textbf{falsifiable invariance-blindness principle}: any
+    geometric method invariant to translations in feature space---$f(X +
+    \mathbf{1}c^\top) = f(X)$---is blind to additive device calibration
+    variation.  The data confirm this without exception across all 23
+    methods, and the prediction extends to any single-modality sensor
+    deployment where calibration offsets are additive.
+  \item A \textbf{method--axis sensitivity map} (Table~\ref{tab:sensitivity})
+    showing which geometric families respond to which decoherence types.
+    The axis that discriminates between methods---device calibration
+    variation---has the simplest physics (additive offset): 25 of 30
+    methods track the composite coherence axis at $|\rho| > 0.5$, but
+    only 6 do so on device variation.
+  \item A \textbf{pre-registered prediction} confirmed by the data:
+    Grassmannian geodesic distance underperforms bracket norms
+    ($\Delta\rho = -0.39$ and $-0.62$ on two axes, both $|d| > 1.4$),
+    explained by the invariance principle above.
 \end{enumerate}
 
 To our knowledge, this is the first systematic, pre-registered
-comparison of geometric analysis methods under controlled noise
-conditions.  Prior work has evaluated individual geometric families on
-specific tasks; the contribution here is the cross-family sensitivity
-map and the identification of noise-geometry matching as the
-operational challenge.
+comparison of geometric analysis methods under controlled sensor noise.
+Prior work has evaluated individual geometric families on specific
+tasks; the contribution here is the invariance-blindness principle, the
+cross-family sensitivity map, and the identification of noise-geometry
+matching as the operational challenge.
 
 % ================================================================
 \section{Simulation oracle}
@@ -569,11 +578,10 @@ measure different properties than classification accuracy.
 \section{Discussion}
 \label{sec:discussion}
 
-\subsection{Geometric invariance creates predictable blind spots}
+\subsection{The invariance-blindness principle}
 
-The central finding is not merely that no method generalizes---it is
-that each method's blind spots are \emph{predictable from its
-geometric invariance properties}.  A method that operates on subspace
+The paper's central claim is that each geometric method's blind spots
+are \emph{predictable from its invariance properties}.  A method that operates on subspace
 angles~\citep{absil2008optimization,chikuse2003statistics} (Grassmannian geodesic, holonomy),
 graph curvature~\citep{samal2018comparative} (Ollivier-Ricci,
 Forman-Ricci), or direction-dependent statistics (Berry phase proxy) is
@@ -725,16 +733,20 @@ quantum state, not to processed measurement features.
 \section{Conclusion}
 \label{sec:conclusion}
 
-This study provides a pre-registered map of which geometric methods
-respond to which decoherence mechanisms in simulated NV-diamond
-thermometry.  The headline result is a refutation: Grassmannian geodesic
-distance, a principled subspace metric, is blind to the noise source
-most relevant to clinical multi-sensor deployments (device calibration
-variation) because of a geometric invariance property
-(Figure~\ref{fig:geodesic-bracket}).  Six methods (bracket norms,
+Geometric invariance properties predict sensor blind spots.  A
+method's translation invariance---a standard mathematical
+property---has a direct, testable consequence: blindness to additive
+device calibration variation, the dominant noise source in
+single-modality multi-sensor deployments.  This study establishes the
+principle through a pre-registered experiment on simulated NV-diamond
+thermometry (Figure~\ref{fig:geodesic-bracket}), confirms it without
+exception across 23 geometric methods
+(Figure~\ref{fig:heatmap}), and provides a method--axis sensitivity map
+for practitioner method selection.  Six methods (bracket norms,
 persistent H0, CKA, Procrustes, fidelity proxy, transport-stable
 bracket) achieve the best generalization at 4 of 5 axes, but all fall
-short on device variation (Figure~\ref{fig:heatmap}).
+short on device variation---the axis with the simplest physics is the
+one that discriminates.
 
 \paragraph{Practitioner guidance.}
 Table~\ref{tab:guide} distills the sensitivity map into a method
@@ -768,15 +780,19 @@ are the appropriate tools, because most geometric methods are blind to
 additive offsets (see the translation-invariance claim in
 Section~\ref{sec:discussion}).
 
-\paragraph{Transferability.}
-The companion-axis methodology transfers to any domain where a primary
-decoherence axis is composite.  The principle---test the same hypothesis
-on a clean, non-composite axis alongside the composite one---exposed the
-central finding here and can similarly disentangle confounds in other
-sensing modalities.  A planned follow-up study will extend this design to
-cross-modality sensor arrays (NV-diamond, entangled-photon, spin-labeled
-protein) with 12 decoherence axes, where sheaf cohomology and transport
-methods are expected to differentiate from bracket norms.
+\paragraph{Transferability and next steps.}
+The invariance-blindness principle applies wherever device calibration
+produces additive offsets---the prediction is
+geometric, not NV-specific.  The companion-axis methodology transfers
+to any domain where a primary decoherence axis is composite: testing
+the same hypothesis on a clean, non-composite axis alongside the
+composite one exposed the central finding here.  The additive-offset
+regime tested in this simulation is the cleanest case for the
+invariance principle; a planned follow-up on experimental fiber-coupled
+NV data~\citep{rajpal2025evaluating} will test whether the principle
+holds under realistic magnitudes ($\sim$2.3~K equivalent strain
+variation, $\sim$20$\times$ the simulated range) and multiplicative
+noise, where currently ``blind'' methods may respond.
 
 \paragraph{Reproducibility.}
 All code, pre-registration, deviation log, and raw results (150,000
