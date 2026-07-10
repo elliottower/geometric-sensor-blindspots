@@ -48,10 +48,11 @@ def get_commit_sha():
         return "unknown"
 
 
-def run_single_sweep(axis_name, n_per_class, n_devices, seed):
+def run_single_sweep(axis_name, n_per_class, n_devices, seed, baseline_overrides=None):
     """Run all methods and baselines across one decoherence axis sweep."""
     sweep_data = sweep_single_axis(
-        axis_name, n_per_class=n_per_class, seed=seed, n_devices=n_devices
+        axis_name, n_per_class=n_per_class, seed=seed, n_devices=n_devices,
+        baseline_overrides=baseline_overrides,
     )
     results = []
     for level, X, y, dev in sweep_data:
@@ -113,11 +114,30 @@ def run_single_sweep(axis_name, n_per_class, n_devices, seed):
     return results
 
 
-def run_all_sweeps(n_per_class, n_devices, n_seeds, base_seed, axes, output_path):
+def _load_completed(jsonl_path):
+    """Load already-completed (axis, seed) pairs and their results from JSONL."""
+    done = set()
+    results = []
+    if jsonl_path.exists():
+        with open(jsonl_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                entry = json.loads(line)
+                key = (entry["axis"], entry["seed"])
+                done.add(key)
+                results.extend(entry["results"])
+    return done, results
+
+
+def run_all_sweeps(n_per_class, n_devices, n_seeds, base_seed, axes, output_path,
+                   baseline_overrides=None):
     """Run sweeps across all axes with N_SEEDS replications per condition.
 
-    Writes results incrementally to output_path (one JSON object per flush)
-    so partial results survive interruption.
+    Writes results incrementally as JSONL (one line per axis-seed batch).
+    On restart, loads the JSONL and skips already-completed (axis, seed) pairs.
+    Final combined JSON is written at the end.
     """
     if axes is None:
         axes = list(DECOHERENCE_AXES.keys())
@@ -127,6 +147,10 @@ def run_all_sweeps(n_per_class, n_devices, n_seeds, base_seed, axes, output_path
     total_combos = sum(len(DECOHERENCE_AXES[ax]) for ax in axes)
     total_evals = total_combos * n_methods * n_seeds
 
+    jsonl_path = Path(str(output_path) + "l")
+    done, all_results = _load_completed(jsonl_path)
+    n_skipped = len(done)
+
     print(f"[{datetime.now(timezone.utc).isoformat()}] Starting experiment sweep")
     print(f"  Axes: {axes}")
     print(f"  Levels per axis: {[len(DECOHERENCE_AXES[ax]) for ax in axes]}")
@@ -134,41 +158,64 @@ def run_all_sweeps(n_per_class, n_devices, n_seeds, base_seed, axes, output_path
     print(f"  Seeds: {n_seeds} (base={base_seed})")
     print(f"  Total method evaluations: {total_evals}")
     print(f"  n_per_class={n_per_class}, n_devices={n_devices}")
+    if baseline_overrides:
+        print(f"  Baseline overrides: {baseline_overrides}")
+    if n_skipped:
+        print(f"  Resuming: {n_skipped} axis-seed pairs already done, {len(all_results)} cached results")
 
-    all_results = []
-    pbar = tqdm(total=len(axes) * n_seeds, desc="Axis x Seed")
-    for axis in axes:
-        for seed in seeds:
-            t0 = time.time()
-            results = run_single_sweep(axis, n_per_class, n_devices, seed)
-            elapsed = time.time() - t0
-            n_errors = sum(1 for r in results if r.get("error"))
-            all_results.extend(results)
-            pbar.set_postfix(axis=axis, seed=seed, errors=n_errors, t=f"{elapsed:.0f}s")
-            pbar.update(1)
+    total_pairs = len(axes) * n_seeds
+    n_total_errors = 0
+    pbar = tqdm(total=total_pairs, initial=n_skipped, desc="Axis x Seed")
+    with open(jsonl_path, "a") as jl:
+        for axis in axes:
+            for seed in seeds:
+                if (axis, seed) in done:
+                    continue
 
-            with open(output_path, "w") as f:
-                json.dump({
-                    "meta": _build_meta(n_per_class, n_devices, n_seeds, base_seed, axes, all_results),
-                    "results": all_results,
-                }, f, indent=2)
+                t0 = time.time()
+                results = run_single_sweep(axis, n_per_class, n_devices, seed,
+                                           baseline_overrides=baseline_overrides)
+                elapsed = time.time() - t0
+                n_errors = sum(1 for r in results if r.get("error"))
+                n_total_errors += n_errors
+                all_results.extend(results)
+
+                jl.write(json.dumps({"axis": axis, "seed": seed, "results": results}) + "\n")
+                jl.flush()
+
+                pbar.set_postfix(axis=axis, seed=seed, errors=n_errors, t=f"{elapsed:.0f}s",
+                                 done=len(all_results))
+                pbar.update(1)
 
     pbar.close()
+
+    with open(output_path, "w") as f:
+        json.dump({
+            "meta": _build_meta(n_per_class, n_devices, n_seeds, base_seed, axes, all_results,
+                                baseline_overrides=baseline_overrides),
+            "results": all_results,
+        }, f)
+
     print(f"\n[{datetime.now(timezone.utc).isoformat()}] Done. {len(all_results)} results saved to {output_path}")
+    print(f"  Incremental log: {jsonl_path} ({n_total_errors} new errors, {n_skipped} resumed)")
     return all_results
 
 
-def _build_meta(n_per_class, n_devices, n_seeds, base_seed, axes, results):
+def _build_meta(n_per_class, n_devices, n_seeds, base_seed, axes, results,
+                baseline_overrides=None):
+    config = {
+        "n_per_class": n_per_class,
+        "n_devices": n_devices,
+        "n_seeds": n_seeds,
+        "base_seed": base_seed,
+        "axes": axes,
+    }
+    if baseline_overrides:
+        config["baseline_overrides"] = baseline_overrides
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "commit_sha": get_commit_sha(),
-        "config": {
-            "n_per_class": n_per_class,
-            "n_devices": n_devices,
-            "n_seeds": n_seeds,
-            "base_seed": base_seed,
-            "axes": axes,
-        },
+        "config": config,
         "n_results": len(results),
         "n_errors": sum(1 for r in results if r.get("error")),
     }
@@ -183,10 +230,16 @@ def main():
     parser.add_argument("--base-seed", type=int, default=DEFAULT_BASE_SEED)
     parser.add_argument("--axes", nargs="*", default=None,
                         help="Which axes to sweep (default: all)")
+    parser.add_argument("--delta-t", type=float, default=None,
+                        help="Override Delta_T (K) for signal strength sweep")
     args = parser.parse_args()
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    baseline_overrides = None
+    if args.delta_t is not None:
+        baseline_overrides = {"delta_T": args.delta_t}
 
     run_all_sweeps(
         n_per_class=args.n_per_class,
@@ -195,6 +248,7 @@ def main():
         base_seed=args.base_seed,
         axes=args.axes,
         output_path=output_path,
+        baseline_overrides=baseline_overrides,
     )
 
 

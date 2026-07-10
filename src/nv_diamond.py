@@ -38,6 +38,7 @@ BASELINE_DECOHERENCE = {
     "sigma_temp": 0.0,
     "n_centers": 20,
     "sigma_gain": 0.0,
+    "delta_T": 1.5,
 }
 
 
@@ -49,6 +50,7 @@ class DecoherenceParams:
     sigma_temp: float = 0.0
     n_centers: int = 20
     sigma_gain: float = 0.0
+    delta_T: float = 1.5
 
     def to_dict(self):
         return {
@@ -58,6 +60,7 @@ class DecoherenceParams:
             "sigma_temp": self.sigma_temp,
             "n_centers": self.n_centers,
             "sigma_gain": self.sigma_gain,
+            "delta_T": self.delta_T,
         }
 
 
@@ -158,7 +161,7 @@ def generate_dataset(
 
     idx = 0
     for dev in range(n_devices):
-        for label, temp in [(0, TEMP_HEALTHY), (1, TEMP_TUMOR)]:
+        for label, temp in [(0, TEMP_HEALTHY), (1, TEMP_HEALTHY + params.delta_T)]:
             for _ in range(n_per_class):
                 X[idx] = generate_nv_sample(temp, params, device_offsets[dev], rng)
                 if params.sigma_gain > 0:
