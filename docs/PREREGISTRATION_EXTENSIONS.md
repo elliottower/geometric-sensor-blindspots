@@ -2,6 +2,7 @@
 
 **Status**: FROZEN before any extension experiments run.
 **Parent pre-registration**: `docs/PREREGISTRATION.md` (SHA `8401d54`)
+**Extension freeze SHA**: `567c3bc`
 **Extension freeze date**: 2026-07-09
 
 These extensions add three new experimental axes to the original 5-axis
