@@ -3,7 +3,7 @@
 **Status**: FROZEN before any designed-metric experiments run.
 **Parent pre-registration**: docs/PREREGISTRATION.md (SHA 8401d54)
 **Extensions doc**: docs/PREREGISTRATION_EXTENSIONS.md (SHA e31a495)
-**This freeze SHA (v1)**: <FILL AFTER COMMIT>
+**This freeze SHA (v1)**: `740a1de`
 **Date**: 2026-07-10
 
 ## Motivation
