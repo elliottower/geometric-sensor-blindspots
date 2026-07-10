@@ -12,6 +12,12 @@ Usage:
     uv run --with scipy --with scikit-learn --with tqdm python src/runner.py \
         --axes alpha_T2 --n-seeds 3 --n-per-class 30 --n-devices 2 \
         --output results/smoke.json
+
+    # 2D grid sweep (H_int: alpha_T2 x sigma_device, 6x6 grid)
+    uv run --with scipy --with scikit-learn --with tqdm python src/runner.py \
+        --grid alpha_T2 sigma_device --grid-levels 6 6 \
+        --n-seeds 50 --base-seed 1300 \
+        --output results/sweep_results_grid.json
 """
 
 import argparse
@@ -26,7 +32,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from nv_diamond import DECOHERENCE_AXES, sweep_single_axis
+from nv_diamond import DECOHERENCE_AXES, DecoherenceParams, BASELINE_DECOHERENCE, generate_dataset, sweep_single_axis
 from methods import METHODS
 from baselines import BASELINES
 
@@ -201,6 +207,164 @@ def run_all_sweeps(n_per_class, n_devices, n_seeds, base_seed, axes, output_path
     return all_results
 
 
+def _run_methods_on_dataset(X, y, dev, cell_meta):
+    """Run all methods and baselines on one dataset, returning result dicts."""
+    results = []
+    for method_id, method_fn in METHODS.items():
+        try:
+            out = method_fn(X, y, dev)
+            score = out.pop("score")
+            name = out.pop("name")
+            results.append({
+                **cell_meta,
+                "method": name,
+                "method_id": method_id,
+                "type": "geometric",
+                "score": float(score) if not isinstance(score, int) else score,
+                "extra": {k: float(v) if isinstance(v, (float, np.floating)) else v
+                          for k, v in out.items()},
+            })
+        except Exception as e:
+            results.append({
+                **cell_meta,
+                "method": f"method_{method_id}",
+                "method_id": method_id,
+                "type": "geometric",
+                "score": None,
+                "error": str(e),
+            })
+    for bl_name, bl_fn in BASELINES.items():
+        try:
+            out = bl_fn(X, y, dev)
+            score = out.pop("score")
+            name = out.pop("name")
+            results.append({
+                **cell_meta,
+                "method": name,
+                "method_id": bl_name,
+                "type": "baseline",
+                "score": float(score) if not isinstance(score, int) else score,
+                "extra": {k: float(v) if isinstance(v, (float, np.floating)) else v
+                          for k, v in out.items()},
+            })
+        except Exception as e:
+            results.append({
+                **cell_meta,
+                "method": bl_name,
+                "method_id": bl_name,
+                "type": "baseline",
+                "score": None,
+                "error": str(e),
+            })
+    return results
+
+
+def _load_grid_completed(jsonl_path):
+    """Load completed grid cells from JSONL. Key is (axis1_val, axis2_val, seed)."""
+    done = set()
+    results = []
+    if jsonl_path.exists():
+        with open(jsonl_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                entry = json.loads(line)
+                key = (entry["axis1_val"], entry["axis2_val"], entry["seed"])
+                done.add(key)
+                results.extend(entry["results"])
+    return done, results
+
+
+def run_grid_sweeps(axis1_name, axis1_levels, axis2_name, axis2_levels,
+                    n_per_class, n_devices, n_seeds, base_seed, output_path):
+    """Run a 2D grid sweep over two axes with N_SEEDS replications per cell."""
+    seeds = [base_seed + s for s in range(n_seeds)]
+    n_methods = len(METHODS) + len(BASELINES)
+    n_cells = len(axis1_levels) * len(axis2_levels)
+    total_evals = n_cells * n_methods * n_seeds
+
+    jsonl_path = Path(str(output_path) + "l")
+    done, all_results = _load_grid_completed(jsonl_path)
+    n_skipped = len(done)
+
+    print(f"[{datetime.now(timezone.utc).isoformat()}] Starting 2D grid sweep")
+    print(f"  Axis 1: {axis1_name} ({len(axis1_levels)} levels)")
+    print(f"  Axis 2: {axis2_name} ({len(axis2_levels)} levels)")
+    print(f"  Grid: {len(axis1_levels)} x {len(axis2_levels)} = {n_cells} cells")
+    print(f"  Methods: {len(METHODS)} geometric + {len(BASELINES)} baselines = {n_methods}")
+    print(f"  Seeds: {n_seeds} (base={base_seed})")
+    print(f"  Total method evaluations: {total_evals}")
+    print(f"  n_per_class={n_per_class}, n_devices={n_devices}")
+    if n_skipped:
+        print(f"  Resuming: {n_skipped} cells already done, {len(all_results)} cached results")
+
+    total_tasks = n_cells * n_seeds
+    n_total_errors = 0
+    pbar = tqdm(total=total_tasks, initial=n_skipped, desc="Grid cells x Seeds")
+
+    with open(jsonl_path, "a") as jl:
+        for a1_val in axis1_levels:
+            for a2_val in axis2_levels:
+                for seed in seeds:
+                    if (a1_val, a2_val, seed) in done:
+                        continue
+
+                    sweep_params = dict(BASELINE_DECOHERENCE)
+                    sweep_params[axis1_name] = float(a1_val)
+                    sweep_params[axis2_name] = float(a2_val)
+                    params = DecoherenceParams(**sweep_params)
+
+                    t0 = time.time()
+                    X, y, dev = generate_dataset(n_per_class, params, seed=seed, n_devices=n_devices)
+                    cell_meta = {
+                        "axis": f"{axis1_name}_x_{axis2_name}",
+                        "axis1": axis1_name, "axis1_val": a1_val,
+                        "axis2": axis2_name, "axis2_val": a2_val,
+                        "seed": seed,
+                    }
+                    results = _run_methods_on_dataset(X, y, dev, cell_meta)
+                    elapsed = time.time() - t0
+
+                    n_errors = sum(1 for r in results if r.get("error"))
+                    n_total_errors += n_errors
+                    all_results.extend(results)
+
+                    jl.write(json.dumps({
+                        "axis1_val": a1_val, "axis2_val": a2_val,
+                        "seed": seed, "results": results,
+                    }) + "\n")
+                    jl.flush()
+
+                    pbar.set_postfix(a1=f"{a1_val:.1f}", a2=f"{a2_val:.2f}",
+                                     seed=seed, errors=n_errors, t=f"{elapsed:.0f}s")
+                    pbar.update(1)
+
+    pbar.close()
+
+    meta = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "commit_sha": get_commit_sha(),
+        "config": {
+            "mode": "grid",
+            "axis1": axis1_name, "axis1_levels": axis1_levels,
+            "axis2": axis2_name, "axis2_levels": axis2_levels,
+            "n_per_class": n_per_class,
+            "n_devices": n_devices,
+            "n_seeds": n_seeds,
+            "base_seed": base_seed,
+        },
+        "n_results": len(all_results),
+        "n_errors": sum(1 for r in results if r.get("error")),
+    }
+    with open(output_path, "w") as f:
+        json.dump({"meta": meta, "results": all_results}, f)
+
+    print(f"\n[{datetime.now(timezone.utc).isoformat()}] Done. {len(all_results)} results saved to {output_path}")
+    print(f"  Incremental log: {jsonl_path} ({n_total_errors} new errors, {n_skipped} resumed)")
+    return all_results
+
+
 def _build_meta(n_per_class, n_devices, n_seeds, base_seed, axes, results,
                 baseline_overrides=None):
     config = {
@@ -232,24 +396,44 @@ def main():
                         help="Which axes to sweep (default: all)")
     parser.add_argument("--delta-t", type=float, default=None,
                         help="Override Delta_T (K) for signal strength sweep")
+    parser.add_argument("--grid", nargs=2, metavar=("AXIS1", "AXIS2"), default=None,
+                        help="Run 2D grid sweep over two axes (e.g. --grid alpha_T2 sigma_device)")
+    parser.add_argument("--grid-levels", nargs=2, type=int, default=[6, 6],
+                        help="Number of levels per grid axis (default: 6 6)")
     args = parser.parse_args()
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    baseline_overrides = None
-    if args.delta_t is not None:
-        baseline_overrides = {"delta_T": args.delta_t}
-
-    run_all_sweeps(
-        n_per_class=args.n_per_class,
-        n_devices=args.n_devices,
-        n_seeds=args.n_seeds,
-        base_seed=args.base_seed,
-        axes=args.axes,
-        output_path=output_path,
-        baseline_overrides=baseline_overrides,
-    )
+    if args.grid:
+        axis1, axis2 = args.grid
+        n1, n2 = args.grid_levels
+        a1_range = DECOHERENCE_AXES[axis1]
+        a2_range = DECOHERENCE_AXES[axis2]
+        axis1_levels = list(np.linspace(a1_range[0], a1_range[-1], n1))
+        axis2_levels = list(np.linspace(a2_range[0], a2_range[-1], n2))
+        run_grid_sweeps(
+            axis1_name=axis1, axis1_levels=axis1_levels,
+            axis2_name=axis2, axis2_levels=axis2_levels,
+            n_per_class=args.n_per_class,
+            n_devices=args.n_devices,
+            n_seeds=args.n_seeds,
+            base_seed=args.base_seed,
+            output_path=output_path,
+        )
+    else:
+        baseline_overrides = None
+        if args.delta_t is not None:
+            baseline_overrides = {"delta_T": args.delta_t}
+        run_all_sweeps(
+            n_per_class=args.n_per_class,
+            n_devices=args.n_devices,
+            n_seeds=args.n_seeds,
+            base_seed=args.base_seed,
+            axes=args.axes,
+            output_path=output_path,
+            baseline_overrides=baseline_overrides,
+        )
 
 
 if __name__ == "__main__":
