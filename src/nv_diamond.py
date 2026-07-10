@@ -121,7 +121,10 @@ def generate_dataset(
     """Generate a full dataset of NV-diamond samples.
 
     Simulates n_devices sensors observing the same biology. Each device
-    gets a fixed calibration offset drawn from N(0, sigma_device).
+    gets a fixed calibration offset drawn from N(0, sigma_device) and a
+    fixed multiplicative gain drawn from N(1, sigma_gain). Gain scales
+    amplitude features (T2, linewidth, contrast, T1) but not resonance
+    frequency, which is set by crystal field splitting D(T).
 
     Args:
         n_per_class: Samples per class (healthy/tumor) per device.
@@ -146,13 +149,20 @@ def generate_dataset(
     device_offsets = rng.normal(0, params.sigma_device, size=n_devices)
     device_gains = rng.normal(1.0, params.sigma_gain, size=n_devices)
 
+    # Gain affects amplitude-dependent features (T2, linewidth, contrast, T1)
+    # but not resonance frequency (index 3 per center), which is set by
+    # crystal field splitting D(T) and is independent of collection optics.
+    amplitude_mask = np.ones(d_features, dtype=bool)
+    for c in range(params.n_centers):
+        amplitude_mask[c * N_FEATURES_PER_CENTER + 3] = False
+
     idx = 0
     for dev in range(n_devices):
         for label, temp in [(0, TEMP_HEALTHY), (1, TEMP_TUMOR)]:
             for _ in range(n_per_class):
                 X[idx] = generate_nv_sample(temp, params, device_offsets[dev], rng)
                 if params.sigma_gain > 0:
-                    X[idx] *= device_gains[dev]
+                    X[idx, amplitude_mask] *= device_gains[dev]
                 y[idx] = label
                 device_ids[idx] = dev
                 idx += 1
