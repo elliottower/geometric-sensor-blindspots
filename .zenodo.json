@@ -1,7 +1,7 @@
 {
-  "title": "Which geometric methods survive decoherence? A pre-registered comparison of 23 methods on simulated NV-diamond thermometry",
-  "upload_type": "dataset",
-  "description": "Pre-registered experiment comparing 23 geometric methods and 7 scalar baselines across five decoherence axes in simulated NV-diamond intracellular thermometry. Contains analysis code, pre-registration (frozen under commit SHA 8401d54), deviation log, and raw results (150,000 method evaluations, 100 seeds, bootstrap CIs). The central finding is a method-axis sensitivity map: no single geometric method generalizes across all decoherence types, and device calibration variation (the simplest noise mechanism) is the axis that discriminates between methods.",
+  "title": "Geometric invariance predicts sensor blind spots: a pre-registered comparison of 23 methods on simulated NV-diamond thermometry",
+  "upload_type": "software",
+  "description": "Pre-registered experiment comparing 23 geometric methods and 7 scalar baselines across five decoherence axes in simulated NV-diamond intracellular thermometry. Contains analysis code, pre-registration (frozen under commit SHA 8401d54), deviation log, and raw results (150,000 method evaluations, 100 seeds, bootstrap CIs). The central finding is that translation-invariant methods are structurally blind to device calibration variation, the dominant noise source in multi-sensor deployments.",
   "creators": [
     {
       "name": "Tower, Elliot",
@@ -17,15 +17,11 @@
     "decoherence",
     "pre-registration",
     "Grassmannian",
-    "bracket norm",
-    "persistent homology",
-    "sheaf cohomology",
-    "cross-sensor robustness",
-    "method comparison"
+    "sensor robustness"
   ],
   "related_identifiers": [
     {
-      "identifier": "https://github.com/elliottower/geometric-sensor-robustness",
+      "identifier": "https://github.com/elliottower/geometric-sensor-blindspots",
       "relation": "isSupplementTo",
       "scheme": "url"
     }

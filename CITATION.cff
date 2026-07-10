@@ -1,15 +1,16 @@
 cff-version: 1.2.0
 message: "If you use this data or code, please cite it as below."
-title: "Which geometric methods survive decoherence? A pre-registered comparison of 23 methods on simulated NV-diamond thermometry"
+title: "Geometric invariance predicts sensor blind spots: a pre-registered comparison of 23 methods on simulated NV-diamond thermometry"
 authors:
   - family-names: Tower
     given-names: Elliot
     email: elliot@elliottower.ai
     orcid: "https://orcid.org/0000-0001-7004-8884"
     affiliation: "Independent Researcher"
-type: dataset
+type: software
 license: MIT
-repository-code: "https://github.com/elliottower/geometric-sensor-robustness"
+repository-code: "https://github.com/elliottower/geometric-sensor-blindspots"
+doi: "10.5281/zenodo.21299293"
 keywords:
   - geometric methods
   - quantum sensors
